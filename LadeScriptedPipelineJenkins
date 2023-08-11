@@ -1,0 +1,47 @@
+node {
+    // This node block specifies that the pipeline will be executed on a Jenkins agent node.
+    stage ('git-clone') {
+        // This stage is responsible for cloning the git repository.
+        sh " echo 'we are about to clone'" // echo a message before the clone operation.
+        git branch: 'main', url: 'https://github.com/ladebiyiadejayan/sysmsify-web-app.git'
+        // clone the main branch of the repository.
+        sh " echo 'the clone was successful'" // Echo a message after the clone operation
+    }
+    stage ('build artifact') {
+    // This stage builds the artifact e.g running mvn package
+    sh " echo 'we are about to build or run mvn package'" // echo a message before the build operation
+    def mvnHome = tool name: 'maven 3.9.4', type: 'maven'
+        sh "${mvnHome}/bin/mvn package" // add the actual build command here e.g (mvn package) or any other build command
+    // for example: sh "mvn clean package"
+    sh " echo 'the build was successful'" // echo a message after build operation.
+    }
+     stage ("code quality check using sonarqube") {
+        // This stage would run code quality tests
+        sh " echo 'we are about to test or run mvn sonar:sonar'" // echo a message before test operation
+        def mvnHome = tool name: 'maven 3.9.4', type: 'maven'
+        sh "${mvnHome}/bin/mvn sonar:sonar" // adding the actual code test command here (mvn sonar:sonar) or any other test command
+        sh " echo 'the test was succesful'" //echo a message after the test operation
+    }
+    stage ('artifact backup using nexus repository') {
+        //this stage will back up artifact
+        sh " echo 'we are about to backup artifact or run mvn deploy'" // echo a message before artifacts is backup
+        def mvnHome = tool name: 'maven 3.9.4', type: 'maven'
+        sh "${mvnHome}/bin/mvn deploy" // add actual artifact backup command here e.g mvn deploy or any other backup command
+        sh " echo 'the backup was successful'" // echo a message after backup operation.
+    }
+
+    stage('Deploy to Tomcat') {
+        def tomcatUrl = 'http://3.94.9.169:8080/'  // Update this to your Tomcat URL
+        def warFile = 'target/*.war'      // Update this to your application's WAR file path
+
+        step([$class: 'DeployPublisher', 
+              adapters: [[$class: 'Tomcat9xAdapter', 
+                          credentialsId: 'tomcatID',  // Update this to your Tomcat credentials ID
+                          url:tomcatUrl]],
+              contextPath: 'sysmsifywebapp',
+              war: warFile])
+}       
+
+}
+
+
